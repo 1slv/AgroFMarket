@@ -1,39 +1,37 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import { Link } from 'expo-router';
 
-
-export default function Home() {
-    const handleSignUp = () => {
-        router.push('/tabs/consultas');
-      };
-    
+export default function App() {
   return (
     <View style={styles.container}>
+
       <Image source={require('../../assets/logo.png')} style={styles.logo} />
-      <Text style={styles.title}>Boas-vindas!</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Digite a especialidade"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Digite sua localização"
-      />
-      <TouchableOpacity style={styles.button}  onPress={handleSignUp}>
-        <Text style={styles.buttonText}>Buscar</Text>
-      </TouchableOpacity>
 
-      <Text style={styles.subTitle}>Depoimentos</Text>
-      <Text style={styles.depoimento}>
-        "Atendimento ideal"
-      </Text>
-      <Text style={styles.autor}>- Marcos, 20 anos, São Paulo/SP</Text>
+      <Text style={styles.title}>Agricultores Familiares</Text>
+      <Text style={styles.title2}>Disponível</Text>
 
-      <Text style={styles.depoimento}>
-        "Excelente atendimento"
-      </Text>
-      <Text style={styles.autor}>- Maria Eduarda, 18 anos, Rio de Janeiro/RJ</Text>
+      <View style={styles.card}>
+
+        <Image source={require('../../assets/horta.png')} style={styles.hortaImg} />
+        <Text style={styles.hortaTxt}>Horta do Carlão</Text>
+        <Text style={styles.telTxt}>TEL:14 99999-9999</Text>
+        <Text style={styles.horTxt}>07:00 - 11:00</Text>
+        <Text style={styles.horTxt}>14:00 - 17:00</Text>
+        <TouchableOpacity style={styles.button}>
+          <Text style={styles.buttonTxt}>REALIZAR PEDIDO</Text>
+        </TouchableOpacity>
+
+      </View>
+
+      <View style={styles.rodape}>
+        <Link href="/tabs/login" asChild>
+          <TouchableOpacity>
+            <Image source={require('../../assets/profile.png')} style={styles.profileImg}/>  
+          </TouchableOpacity>
+        </Link>
+      </View>
+      
     </View>
   );
 }
@@ -41,57 +39,89 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#E6E6E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-    textAlign: 'center',
+  logo :{
+    width: 266,
+    height: 177,
+    marginTop:70,
   },
-  input: {
-    height: 50,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 15,
-    backgroundColor: '#f9f9f9',
+  title :{
+    fontSize: 20,
+    color: '#80BD1C',
+    marginLeft: -100,
+    fontFamily: 'BIZ UDGothic',
+  },
+  title2 :{
+    fontSize: 20,
+    color: '#CC8918',
+    marginLeft: 210,
+    marginTop: -26
+  },
+  card: {
+    width: 360,
+    height: 160,
+    backgroundColor: '#ffff',
+    marginTop: 30,
+    borderRadius: 25,
+  },
+  hortaImg: {
+    width: 110,
+    height: 150,
+    marginTop: 8,
+    marginLeft: 15
+  },
+  hortaTxt: {
+    marginLeft: 180,
+    marginTop: -150,
+    fontSize: 20,
+  },
+  telTxt: {
+    marginLeft: 180,
+  },
+  horTxt: {
+    marginLeft: 180,
+    fontSize: 12,
   },
   button: {
-    height: 50,
-    backgroundColor: '#0B3B60',
+    width: 153,
+    height: 52,
+    marginLeft: 180,
+    marginTop: 10,
+    backgroundColor: '#CC8918',
+    borderRadius: 100,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    marginBottom: 20,
+    position: 'relative',
+    elevation: 5, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  subTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  depoimento: {
-    fontStyle: 'italic',
-    color: '#666',
-    marginBottom: 10,
-  },
-  autor: {
-    color: '#333',
-    marginBottom: 20,
-  },
-  logo: {
-    alignItems: 'center',
-    margin: 'auto',
-    alignItems: 'center',
+  buttonTxt: {
+    color: 'white',
+    fontSize: 20,
     justifyContent: 'center'
+    
   },
+  rodape: {
+    width: 430,
+    height: 69,
+    backgroundColor: '#CC8918',
+    marginTop: 400,
+    textAlign: 'center',
+    alignItems: 'center',
+  },
+  profileImg: {
+    height: 45,
+    width: 45,
+  }
+
 });
