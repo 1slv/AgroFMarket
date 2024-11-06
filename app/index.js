@@ -1,31 +1,44 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
+import database from './database/database';
+import { useAuth } from './contexts/AuthContext';
 
 export default function Login() {
+  const router = useRouter();
+  const { login } = useAuth(); // Acessa a função de login do AuthContext
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [selectedValue, setSelectedValue] = useState('');
 
-  const handlePedidoPress = () => {
+  const handleLogin = async () => {
     if (!selectedValue || !email || !senha) {
-      Alert.alert(
-        "Campos Incompletos",
-        "Por favor, preencha todos os campos antes de continuar.",
-        [{ text: "OK" }]
-      );
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      return;
+    }
+
+    try {
+      const usuario = await database.loginUsuario(email, senha);
+      if (usuario && usuario.tipo === (selectedValue === 'op1' ? 'agricultor' : 'consumidor')) {
+        login(usuario); // Atualiza o AuthContext com os dados do usuário
+        router.replace('/home'); // Redireciona para a tela home
+      } else {
+        Alert.alert('Erro', 'Email, senha ou tipo incorretos');
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Erro ao realizar login');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/backgound.png')} style={styles.fundoImg}/>
-      <View style={styles.backOp}/>
+      <Image source={require('../assets/backgound.png')} style={styles.fundoImg} />
+      <View style={styles.backOp} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.backLog}>
-          <Image source={require('../assets/logo.png')} style={styles.logo}/>
+          <Image source={require('../assets/logo.png')} style={styles.logo} />
 
           <View style={styles.formContainer}>
             <View style={styles.pickerContainer}>
@@ -58,6 +71,7 @@ export default function Login() {
               placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
+              keyboardType="email-address"
             />
             <TextInput 
               style={styles.input}
@@ -71,30 +85,16 @@ export default function Login() {
         </View>
 
         <View style={styles.buttonWrapper}>
-          {selectedValue && email && senha ? (
-            <Link href="/pedido" asChild>
-              <TouchableOpacity 
-                style={styles.buttonContainer} 
-                activeOpacity={0.7}
-              >
-                <Image 
-                  source={require('../assets/buttonImg.png')} 
-                  style={styles.buttonImag}
-                />
-              </TouchableOpacity>
-            </Link>
-          ) : (
-            <TouchableOpacity 
-              style={styles.buttonContainer} 
-              onPress={handlePedidoPress}
-              activeOpacity={0.7}
-            >
-              <Image 
-                source={require('../assets/buttonImg.png')} 
-                style={styles.buttonImag}
-              />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={styles.buttonContainer} 
+            activeOpacity={0.7}
+            onPress={handleLogin}
+          >
+            <Image 
+              source={require('../assets/buttonImg.png')} 
+              style={styles.buttonImag}
+            />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.createAccountWrapper}>
@@ -112,23 +112,27 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#E6E6E6',
+    alignItems: 'center',
+    resizeMode: 'cover'
   },
   scrollContainer: {
     flexGrow: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   fundoImg: {
     position: 'absolute',
     width: '100%',
     height: '100%',
+    resizeMode: 'cover'
   },
   backOp: {
-    width:430,
-    height: 932,
+    width: '100%',
+    height: '100%',
     position: 'absolute',
     backgroundColor: '#80BD1C',
-    opacity: 0.43
+    opacity: 0.43,
   },
   backLog: {
     width: 352,
@@ -136,7 +140,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6E6E6',
     borderRadius: 50,
     alignItems: 'center',
-    marginTop: 100,
   },
   logo: {
     width: 266,
@@ -171,15 +174,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   buttonWrapper: {
-    position: 'absolute',
-    bottom: 220,
-    width: '100%',
+    marginTop: -160,
     alignItems: 'center',
-    zIndex: 1,
+  
   },
   buttonContainer: {
-    padding: 10,
+    padding: 20,
     backgroundColor: 'transparent',
+    alignItems: 'center'
   },
   buttonImag: {
     height: 70,
@@ -187,13 +189,12 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   createAccountWrapper: {
-    position: 'absolute',
-    bottom: 150,
+    marginTop: 20,
+    alignItems: 'center',
   },
   createAccountText: {
     color: '#333',
     fontSize: 16,
-    marginTop: 200,
     textDecorationLine: 'underline',
   },
 });
