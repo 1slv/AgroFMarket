@@ -4,25 +4,44 @@ import { useAuth } from '../contexts/AuthContext';
 import database from '../database/database';
 import { useRouter } from 'expo-router';
 
-export default function AdicionarHorta() {
-  const { user } = useAuth();
+const AdicionarHorta = () => {
+  const { user, login } = useAuth(); // Acessa o usuário e a função de login para atualizar o contexto
   const router = useRouter();
   const [nomeHorta, setNomeHorta] = useState('');
   const [localizacao, setLocalizacao] = useState('');
 
-  const handleAdicionarHorta = () => {
-    if (!nomeHorta || !localizacao) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+  const handleAdicionarHorta = async () => {
+    if (!nomeHorta.trim() || !localizacao.trim()) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
 
     try {
-      const horta = database.adicionarHorta(user.id, nomeHorta, localizacao);
+      const novaHorta = await database.adicionarHorta(user.id, nomeHorta, localizacao);
+      
+      // Verifica se a nova horta foi criada corretamente
+      if (!novaHorta) {
+        throw new Error('Horta não foi criada corretamente.');
+      }
+
       Alert.alert('Sucesso', 'Horta adicionada com sucesso!', [
-        { text: 'OK', onPress: () => router.replace('/home') }
+        {
+          text: 'OK',
+          onPress: () => {
+            // Atualizar o contexto do usuário com a nova horta
+            const updatedUser = {
+              ...user,
+              hortas: [...(user.hortas || []), novaHorta], // Usa um array vazio se hortas for undefined
+            };
+            login(updatedUser); // Atualiza o AuthContext
+            router.replace('/tabs/adicionarAlimento'); // Redireciona para a tela de adicionar alimento
+          },
+        },
       ]);
+      console.log('Nova horta adicionada:', novaHorta);
     } catch (error) {
-      Alert.alert('Erro', error.message);
+      Alert.alert('Erro', error.message || 'Erro ao adicionar horta.');
+      console.error('Erro ao adicionar horta:', error);
     }
   };
 
@@ -36,26 +55,29 @@ export default function AdicionarHorta() {
         value={nomeHorta}
         onChangeText={setNomeHorta}
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Localização"
         value={localizacao}
         onChangeText={setLocalizacao}
       />
-      
+
       <TouchableOpacity style={styles.button} onPress={handleAdicionarHorta}>
         <Text style={styles.buttonText}>Adicionar Horta</Text>
       </TouchableOpacity>
     </View>
   );
-}
+};
+
+export default AdicionarHorta;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: '#fff',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
@@ -64,23 +86,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
+    width: '100%',
+    height: 52,
     borderWidth: 1,
-    borderColor: '#80BD1C',
+    borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
+    paddingHorizontal: 10,
+    marginBottom: 20,
     backgroundColor: '#f9f9f9',
   },
   button: {
-    backgroundColor: '#80BD1C',
-    padding: 15,
-    borderRadius: 8,
+    width: '100%',
+    height: 52,
+    backgroundColor: '#CC8918',
+    borderRadius: 100,
     alignItems: 'center',
-    marginTop: 10,
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 }); 

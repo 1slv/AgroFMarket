@@ -21,13 +21,20 @@ export default function Login() {
     try {
       const usuario = await database.loginUsuario(email, senha);
       if (usuario && usuario.tipo === (selectedValue === 'op1' ? 'agricultor' : 'consumidor')) {
-        login(usuario); // Atualiza o AuthContext com os dados do usuário
-        router.replace('/home'); // Redireciona para a tela home
+        await login(usuario); // Atualiza o AuthContext com os dados do usuário
+        Alert.alert('Sucesso', 'Login realizado com sucesso!', [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/home'), // Redireciona para a tela home
+          }
+        ]);
+        console.log('Usuário logado:', usuario);
       } else {
         Alert.alert('Erro', 'Email, senha ou tipo incorretos');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao realizar login');
+      Alert.alert('Erro', error.message || 'Erro ao realizar login');
+      console.error('Erro ao realizar login:', error);
     }
   };
 
@@ -59,50 +66,40 @@ export default function Login() {
                 />
                 <Picker.Item 
                   label="Consumidor" 
-                  value="op2"
+                  value="op2" 
                   color="rgba(0, 0, 0, 0.5)"
                 />
               </Picker>
             </View>
 
-            <TextInput 
-              style={styles.input}
+            <TextInput
               placeholder="Email"
-              placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
+              style={styles.input}
+              autoCapitalize="none"
               keyboardType="email-address"
             />
-            <TextInput 
-              style={styles.input}
+
+            <TextInput
               placeholder="Senha"
-              placeholderTextColor="#999"
-              secureTextEntry
               value={senha}
               onChangeText={setSenha}
+              style={styles.input}
+              secureTextEntry
             />
-          </View>
-        </View>
 
-        <View style={styles.buttonWrapper}>
-          <TouchableOpacity 
-            style={styles.buttonContainer} 
-            activeOpacity={0.7}
-            onPress={handleLogin}
-          >
-            <Image 
-              source={require('../assets/buttonImg.png')} 
-              style={styles.buttonImag}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.createAccountWrapper}>
-          <Link href="/tabs/cadastro" asChild>
-            <TouchableOpacity>
-              <Text style={styles.createAccountText}>Criar conta</Text>
+            <TouchableOpacity style={styles.buttonContainer} onPress={handleLogin}>
+              <Image source={require('../assets/buttonImg.png')} style={styles.buttonImag} />
             </TouchableOpacity>
-          </Link>
+
+            <View style={styles.createAccountWrapper}>
+              <Text>Não tem uma conta?</Text>
+              <TouchableOpacity onPress={() => router.replace('/tabs/cadastro')}>
+                <Text style={styles.createAccountText}>Cadastre-se</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -174,7 +171,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   buttonWrapper: {
-    marginTop: -160,
+    marginTop: 20,
     alignItems: 'center',
   
   },

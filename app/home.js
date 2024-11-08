@@ -1,14 +1,35 @@
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
-import database from './database/database'; // Certifique-se de importar o database
+import database from './database/database';
 
 export default function Home() {
-  const { user } = useAuth(); // Acessa os dados do usuário do AuthContext
+  const { user } = useAuth();
+  const [hortasDisponiveis, setHortasDisponiveis] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Função para buscar todas as hortas e seus alimentos
-  const hortasDisponiveis = database.getTodasHortas();
+  useEffect(() => {
+    const fetchHortas = async () => {
+      try {
+        const hortas = await database.getTodasHortas();
+        console.log('Hortas Disponíveis:', hortas);
+        setHortasDisponiveis(hortas);
+      } catch (error) {
+        console.error('Erro ao buscar hortas disponíveis:', error);
+        Alert.alert('Erro', 'Não foi possível carregar as hortas disponíveis.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchHortas();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   return (
     <View style={styles.container}>
@@ -44,36 +65,38 @@ export default function Home() {
           <Text style={styles.title}>Agricultores Familiares Disponíveis</Text>
           <Text style={styles.title2}>Disponível</Text>
 
-          {hortasDisponiveis.length === 0 && (
+          {isLoading ? (
+            <Text style={styles.noHortasText}>Carregando hortas...</Text>
+          ) : hortasDisponiveis.length === 0 ? (
             <Text style={styles.noHortasText}>Nenhuma horta disponível no momento.</Text>
-          )}
-
-          {hortasDisponiveis.map((horta) => (
-            <View key={horta.id} style={styles.card}>
-              <Image source={require('../assets/horta.png')} style={styles.hortaImg} />
-              <View style={styles.cardInfo}>
-                <Text style={styles.hortaTxt}>{horta.nome}</Text>
-                <Text style={styles.localizacaoTxt}>Localização: {horta.localizacao}</Text>
-                <Text style={styles.alimentosTitle}>Alimentos Disponíveis:</Text>
-                {horta.alimentos.length === 0 ? (
-                  <Text style={styles.noAlimentosText}>Nenhum alimento disponível.</Text>
-                ) : (
-                  horta.alimentos.map((alimento) => (
-                    <View key={alimento.id} style={styles.alimentoItem}>
-                      <Text style={styles.alimentoNome}>{alimento.nome}</Text>
-                      <Text style={styles.alimentoDetalhe}>Preço: R$ {alimento.preco}</Text>
-                      <Text style={styles.alimentoDetalhe}>Quantidade: {alimento.quantidade}</Text>
-                    </View>
-                  ))
-                )}
-                <Link href="/pedido" asChild>
-                  <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonTxt}>REALIZAR PEDIDO</Text>
-                  </TouchableOpacity>
-                </Link>
+          ) : (
+            hortasDisponiveis.map((horta) => (
+              <View key={horta.id} style={styles.card}>
+                <Image source={require('../assets/horta.png')} style={styles.hortaImg} />
+                <View style={styles.cardInfo}>
+                  <Text style={styles.hortaTxt}>{horta.nome}</Text>
+                  <Text style={styles.localizacaoTxt}>Localização: {horta.localizacao}</Text>
+                  <Text style={styles.alimentosTitle}>Alimentos Disponíveis:</Text>
+                  {horta.alimentos && horta.alimentos.length === 0 ? (
+                    <Text style={styles.noAlimentosText}>Nenhum alimento disponível.</Text>
+                  ) : (
+                    horta.alimentos && horta.alimentos.map((alimento) => (
+                      <View key={alimento.id} style={styles.alimentoItem}>
+                        <Text style={styles.alimentoNome}>{alimento.nome}</Text>
+                        <Text style={styles.alimentoDetalhe}>Preço: R$ {alimento.preco.toFixed(2)}</Text>
+                        <Text style={styles.alimentoDetalhe}>Quantidade: {alimento.quantidade}</Text>
+                      </View>
+                    ))
+                  )}
+                  <Link href="/pedido" asChild>
+                    <TouchableOpacity style={styles.button}>
+                      <Text style={styles.buttonTxt}>REALIZAR PEDIDO</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </ScrollView>
       )}
 
@@ -93,7 +116,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
-    paddingBottom: 80, // Espaço para o rodapé
+    paddingBottom: 80,
   },
   logo: {
     width: 266,
@@ -214,7 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 10,
     alignItems: 'center',
-    alignSelf: 'flex-start', // Alinha o botão à esquerda
+    alignSelf: 'flex-start',
   },
   buttonTxt: {
     color: '#fff',

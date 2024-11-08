@@ -15,12 +15,15 @@ export default function AdicionarAlimento() {
   const [hortas, setHortas] = useState([]);
 
   useEffect(() => {
-    carregarHortas();
+    const fetchHortas = async () => {
+      await carregarHortas();
+    };
+    fetchHortas();
   }, []);
 
-  const carregarHortas = () => {
+  const carregarHortas = async () => {
     try {
-      const hortasDoAgricultor = database.getHortasAgricultor(user.id);
+      const hortasDoAgricultor = await database.getHortasAgricultor(user.id);
       console.log('Hortas do agricultor:', hortasDoAgricultor);
       setHortas(hortasDoAgricultor);
     } catch (error) {
@@ -29,7 +32,7 @@ export default function AdicionarAlimento() {
     }
   };
 
-  const handleAdicionarAlimento = () => {
+  const handleAdicionarAlimento = async () => {
     if (!hortaId || !nomeAlimento || !preco || !quantidade) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
@@ -43,12 +46,17 @@ export default function AdicionarAlimento() {
     }
 
     try {
-      const alimento = database.adicionarAlimento(Number(hortaId), nomeAlimento, preco, quantidade);
+      const novoAlimento = await database.adicionarAlimento(Number(hortaId), nomeAlimento, parseFloat(preco), parseInt(quantidade, 10));
+      if (!novoAlimento) {
+        throw new Error('Alimento não foi adicionado corretamente.');
+      }
       Alert.alert('Sucesso', 'Alimento adicionado com sucesso!', [
         { text: 'OK', onPress: () => router.replace('/home') }
       ]);
+      console.log('Novo alimento adicionado:', novoAlimento);
     } catch (error) {
-      Alert.alert('Erro', error.message);
+      Alert.alert('Erro', error.message || 'Erro ao adicionar alimento.');
+      console.error('Erro ao adicionar alimento:', error);
     }
   };
 

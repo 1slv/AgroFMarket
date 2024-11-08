@@ -1,5 +1,6 @@
 console.log('Módulo database.js carregado');
 
+// Simulação de banco de dados
 const mockUsuarios = [
   {
     id: 1,
@@ -41,109 +42,256 @@ const database = {
     }
   },
 
-  cadastrarUsuario: (tipo, nome, email, senha, telefone) => {
-    const novoUsuario = {
-      id: mockUsuarios.length + 1,
-      tipo,
-      nome,
-      email,
-      senha,
-      telefone,
-    };
-    mockUsuarios.push(novoUsuario);
-    return novoUsuario;
-  },
-
-  loginUsuario: (email, senha) => {
-    return mockUsuarios.find(
-      (usuario) => usuario.email === email && usuario.senha === senha
-    );
-  },
-
-  adicionarHorta: (agricultorId, nomeHorta, localizacao) => {
-    const agricultor = mockUsuarios.find((u) => u.id === agricultorId && u.tipo === 'agricultor');
-    if (!agricultor) {
-      throw new Error('Agricultor não encontrado.');
-    }
-    const novaHorta = {
-      id: mockHortas.length + 1,
-      agricultorId,
-      nome: nomeHorta,
-      localizacao,
-      alimentos: [],
-    };
-    mockHortas.push(novaHorta);
-    return novaHorta;
-  },
-
-  getHortasAgricultor: (agricultorId) => {
-    const hortas = mockHortas.filter((horta) => horta.agricultorId === agricultorId);
-    console.log(`Recuperando hortas para agricultor ID ${agricultorId}:`, hortas);
-    return hortas.map((horta) => ({ ...horta }));
-  },
-
-  adicionarAlimento: (hortaId, nomeAlimento, preco, quantidade) => {
-    const horta = mockHortas.find((h) => h.id === hortaId);
-    if (!horta) {
-      throw new Error('Horta não encontrada.');
-    }
-    const novoAlimento = {
-      id: mockAlimentos.length + 1,
-      hortaId, // Associando o alimento à horta correta
-      nome: nomeAlimento,
-      preco: parseFloat(preco),
-      quantidade: parseInt(quantidade, 10),
-    };
-    mockAlimentos.push(novoAlimento);
-    horta.alimentos.push(novoAlimento);
-    return novoAlimento;
-  },
-
-  getAlimentosHorta: (hortaId) => {
-    const alimentos = mockAlimentos.filter((a) => a.hortaId === hortaId);
-    console.log(`Recuperando alimentos para horta ID ${hortaId}:`, alimentos);
-    return alimentos.map((alimento) => ({ ...alimento }));
-  },
-
-  getTodasHortas: () => {
-    console.log('Recuperando todas as hortas:', mockHortas);
-    return mockHortas.map((horta) => ({ ...horta }));
-  },
-
-  criarPedido: (pedido) => {
-    console.log('Criando pedido:', pedido); // Log para depuração
-
-    if (!pedido || !pedido.itens || pedido.itens.length === 0) {
-      throw new Error('Pedido inválido ou sem itens.');
-    }
-
-    // Atualizar a quantidade disponível dos produtos
-    pedido.itens.forEach((item) => {
-      const alimento = mockAlimentos.find((a) => a.id === item.id);
-      if (!alimento) {
-        throw new Error(`Alimento com ID ${item.id} não encontrado.`);
+  cadastrarUsuario: async (tipo, nome, email, senha, telefone) => {
+    return new Promise((resolve, reject) => {
+      // Verificar se o email já está registrado
+      const emailExistente = mockUsuarios.find((usuario) => usuario.email === email);
+      if (emailExistente) {
+        console.log('Erro: Email já está registrado:', email);
+        return reject(new Error('Email já está registrado.'));
       }
-      if (item.quantidadeSelecionada > alimento.quantidade) {
-        throw new Error(
-          `Quantidade de ${item.nome} excede o estoque disponível.`
-        );
-      }
-      alimento.quantidade -= item.quantidadeSelecionada;
+
+      const novoUsuario = {
+        id: mockUsuarios.length + 1,
+        tipo,
+        nome,
+        email,
+        senha, // Em produção, a senha deve ser hashada
+        telefone,
+      };
+      mockUsuarios.push(novoUsuario);
+      console.log('Novo usuário cadastrado:', novoUsuario);
+      resolve(novoUsuario);
     });
-
-    const novoPedido = {
-      id: mockPedidos.length + 1,
-      ...pedido,
-      data: new Date(),
-      status: 'Pendente', // Pode ser ajustado conforme necessário
-    };
-    mockPedidos.push(novoPedido);
-    return novoPedido;
   },
 
-  getPedidos: () => {
-    return mockPedidos.map((pedido) => ({ ...pedido }));
+  loginUsuario: async (email, senha) => {
+    return new Promise((resolve, reject) => {
+      const usuario = mockUsuarios.find((u) => u.email === email && u.senha === senha);
+      if (usuario) {
+        console.log('Usuário logado:', usuario);
+        resolve(usuario);
+      } else {
+        console.log('Credenciais inválidas para o email:', email);
+        reject(new Error('Email ou senha inválidos.'));
+      }
+    });
+  },
+
+  atualizarUsuario: async (id, nome, email, telefone) => {
+    return new Promise((resolve, reject) => {
+      const usuarioIndex = mockUsuarios.findIndex((u) => u.id === id);
+      if (usuarioIndex === -1) {
+        return reject(new Error('Usuário não encontrado.'));
+      }
+
+      // Verificar se o novo email já está em uso por outro usuário
+      const emailExistente = mockUsuarios.find((u) => u.email === email && u.id !== id);
+      if (emailExistente) {
+        return reject(new Error('Email já está em uso por outro usuário.'));
+      }
+
+      mockUsuarios[usuarioIndex] = {
+        ...mockUsuarios[usuarioIndex],
+        nome,
+        email,
+        telefone,
+      };
+      console.log('Usuário atualizado:', mockUsuarios[usuarioIndex]);
+      resolve(mockUsuarios[usuarioIndex]);
+    });
+  },
+
+  adicionarHorta: async (agricultorId, nome, localizacao) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Verificar se o agricultor existe
+        const agricultor = mockUsuarios.find(usuario => usuario.id === agricultorId && usuario.tipo === 'agricultor');
+        if (!agricultor) {
+          throw new Error('Agricultor não encontrado.');
+        }
+
+        // Criar nova horta
+        const novaHorta = {
+          id: mockHortas.length + 1,
+          agricultorId,
+          nome,
+          localizacao,
+        };
+
+        mockHortas.push(novaHorta);
+        console.log('Nova horta adicionada ao banco de dados:', novaHorta);
+        resolve(novaHorta);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+
+  getHortasAgricultor: async (agricultorId) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const hortas = mockHortas.filter(horta => horta.agricultorId === agricultorId);
+        resolve(hortas);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+
+  getTodasHortas: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(mockHortas);
+      }, 500);
+    });
+  },
+
+  getAlimentosHorta: async (hortaId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const alimentos = mockAlimentos.filter((a) => a.hortaId === hortaId);
+        resolve(alimentos);
+      }, 500);
+    });
+  },
+
+  adicionarAlimento: async (hortaId, nome, preco, quantidade) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Verificar se a horta existe
+        const horta = mockHortas.find((h) => h.id === hortaId);
+        if (!horta) {
+          throw new Error('Horta não encontrada.');
+        }
+
+        // Criar novo alimento
+        const novoAlimento = {
+          id: mockAlimentos.length + 1,
+          hortaId,
+          nome,
+          preco,
+          quantidade, // Estoque disponível
+        };
+
+        mockAlimentos.push(novoAlimento);
+        console.log('Novo alimento adicionado ao banco de dados:', novoAlimento);
+        resolve(novoAlimento);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+
+  getAlimentosAgricultor: async (agricultorId) => {
+    return new Promise((resolve) => {
+      const hortaIds = mockHortas
+        .filter((horta) => horta.agricultorId === agricultorId)
+        .map((horta) => horta.id);
+      const alimentos = mockAlimentos.filter((alimento) => hortaIds.includes(alimento.hortaId));
+      resolve(alimentos);
+    });
+  },
+
+  getTodosAlimentos: async () => {
+    return new Promise((resolve) => {
+      resolve([...mockAlimentos]); // Retorna uma cópia
+    });
+  },
+
+  criarPedido: async (pedido) => {
+    return new Promise((resolve, reject) => {
+      console.log('Criando pedido:', pedido); // Log para depuração
+
+      if (!pedido || !pedido.itens || pedido.itens.length === 0) {
+        return reject(new Error('Pedido inválido ou sem itens.'));
+      }
+
+      // Atualizar a quantidade disponível dos produtos
+      try {
+        pedido.itens.forEach((item) => {
+          const alimento = mockAlimentos.find((a) => a.id === item.id);
+          if (!alimento) {
+            throw new Error(`Alimento com ID ${item.id} não encontrado.`);
+          }
+          if (item.quantidadeSelecionada > alimento.quantidade) {
+            throw new Error(
+              `Quantidade de ${item.nome} excede o estoque disponível.`
+            );
+          }
+          alimento.quantidade -= item.quantidadeSelecionada;
+        });
+
+        const novoPedido = {
+          id: mockPedidos.length + 1,
+          ...pedido,
+          data: new Date(),
+          status: 'Pendente', // Pode ser ajustado conforme necessário
+        };
+        mockPedidos.push(novoPedido);
+        console.log('Novo pedido criado:', novoPedido);
+        resolve(novoPedido);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+
+  getPedidos: async () => {
+    return new Promise((resolve) => {
+      resolve([...mockPedidos]); // Retorna uma cópia
+    });
+  },
+
+  getCurrentUser: async () => {
+    // Implemente a lógica para obter o usuário atual
+    // Retorne um objeto de usuário ou null
+    return {
+      id: '1',
+      nome: 'João Silva',
+      tipo: 'consumidor', // ou 'agricultor'
+    };
+  },
+
+  /**
+   * Função para processar um pedido.
+   * @param {Object[]} itens - Lista de itens do pedido.
+   * @returns {Promise<string>} - Mensagem de confirmação ou erro.
+   */
+  processarPedido: async (itens) => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Iterar sobre cada item do pedido
+        itens.forEach((item) => {
+          const alimento = mockAlimentos.find((a) => a.id === item.id);
+          if (!alimento) {
+            throw new Error(`Alimento com ID ${item.id} não encontrado.`);
+          }
+
+          // Verificar se há estoque suficiente
+          if (alimento.quantidade < item.quantidadeSelecionada) {
+            throw new Error(
+              `Estoque insuficiente para ${alimento.nome}. Disponível: ${alimento.quantidade}, Solicitado: ${item.quantidadeSelecionada}`
+            );
+          }
+
+          // Decrementar o estoque
+          alimento.quantidade -= item.quantidadeSelecionada;
+          console.log(
+            `Estoque atualizado para ${alimento.nome}: ${alimento.quantidade}`
+          );
+        });
+
+        resolve('Pedido processado com sucesso.');
+      } catch (error) {
+        // Rejeita com a mensagem de erro como string
+        reject(error.message);
+      }
+    });
   },
 };
+
+// Inicializar o banco de dados com dados iniciais
+database.initDatabase();
 
 export default database;

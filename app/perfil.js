@@ -1,7 +1,6 @@
-import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
 import database from './database/database';
 import { useAuth } from './contexts/AuthContext';
 
@@ -25,17 +24,27 @@ export default function Perfil() {
   }, [user]);
 
   const handleSalvar = async () => {
-    if (!nome || !email || !telefone) {
+    if (!nome.trim() || !email.trim() || !telefone.trim()) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
 
     try {
-      const updatedUser = await database.atualizarUsuario(user.id, nome, email, telefone);
-      login(updatedUser); // Atualiza o AuthContext com os novos dados
-      Alert.alert('Sucesso', 'Dados atualizados com sucesso!');
+      const usuarioAtualizado = await database.atualizarUsuario(user.id, nome, email, telefone);
+      Alert.alert('Sucesso', 'Dados atualizados com sucesso!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Atualizar o contexto com os dados atualizados
+            const updatedUser = { ...user, nome, email, telefone };
+            login(updatedUser);
+          },
+        },
+      ]);
+      console.log('Usuário atualizado com sucesso:', usuarioAtualizado);
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao atualizar dados');
+      Alert.alert('Erro', error.message || 'Erro ao atualizar dados');
+      console.error('Erro ao atualizar dados:', error);
     }
   };
 
@@ -121,7 +130,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: 360,
-    backgroundColor: '#ffff',
+    backgroundColor: '#fff',
     marginTop: 230,
     borderRadius: 25,
     padding: 20,
@@ -144,7 +153,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    height: 40,
+    height: 40, // Altura definida
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
@@ -155,7 +164,6 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 52,
-    marginTop: 20,
     backgroundColor: '#CC8918',
     borderRadius: 100,
     alignItems: 'center',

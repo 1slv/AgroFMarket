@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import database from '../database/database';
 
@@ -9,14 +9,21 @@ export default function ListarHortas() {
 
   useEffect(() => {
     carregarHortas();
-  }, []);
+  }, [user]);
 
-  const carregarHortas = () => {
+  const carregarHortas = async () => {
+    if (!user) {
+      Alert.alert('Erro', 'Usuário não autenticado.');
+      return;
+    }
+
     try {
-      const hortasDB = database.getHortasAgricultor(user.id);
+      const hortasDB = await database.getHortasAgricultor(user.id);
       setHortas(hortasDB);
+      console.log('Hortas carregadas:', hortasDB);
     } catch (error) {
       console.error('Erro ao carregar hortas:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as hortas.');
     }
   };
 

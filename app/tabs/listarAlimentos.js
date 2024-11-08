@@ -11,16 +11,30 @@ export default function ListarAlimentos() {
 
   useEffect(() => {
     const fetchAlimentos = async () => {
+      if (!user) {
+        Alert.alert('Erro', 'Usuário não autenticado.');
+        router.replace('/');
+        return;
+      }
+
       try {
-        const alimentosAgricultor = await database.getAlimentosAgricultor(user.id);
+        let alimentosAgricultor = [];
+        if (user.tipo === 'agricultor') {
+          alimentosAgricultor = await database.getAlimentosAgricultor(user.id);
+        } else {
+          // Para consumidores, pode ser necessário uma lógica diferente
+          alimentosAgricultor = await database.getTodosAlimentos();
+        }
         setAlimentos(alimentosAgricultor);
+        console.log('Alimentos carregados:', alimentosAgricultor);
       } catch (error) {
         Alert.alert('Erro', 'Não foi possível carregar os alimentos');
+        console.error('Erro ao carregar alimentos:', error);
       }
     };
 
     fetchAlimentos();
-  }, []);
+  }, [user]);
 
   const renderAlimento = ({ item }) => (
     <View style={styles.alimentoItem}>

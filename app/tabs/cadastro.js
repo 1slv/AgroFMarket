@@ -19,8 +19,9 @@ export default function Cadastro() {
     }
 
     try {
-      await database.cadastrarUsuario(
-        selectedValue === 'op1' ? 'agricultor' : 'consumidor',
+      const tipo = selectedValue === 'op1' ? 'agricultor' : 'consumidor';
+      const novoUsuario = await database.cadastrarUsuario(
+        tipo,
         nome,
         email,
         senha,
@@ -32,8 +33,10 @@ export default function Cadastro() {
           onPress: () => router.replace('/'),
         }
       ]);
+      console.log('Usuário cadastrado com sucesso:', novoUsuario);
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao realizar cadastro');
+      Alert.alert('Erro', error.message);
+      console.error('Erro ao realizar cadastro:', error);
     }
   };
 
@@ -70,50 +73,48 @@ export default function Cadastro() {
             </Picker>
           </View>
 
-          <TextInput 
-            style={styles.input}
+          <TextInput
             placeholder="Nome"
             value={nome}
             onChangeText={setNome}
-          />
-          <TextInput 
             style={styles.input}
+          />
+
+          <TextInput
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
+            style={styles.input}
+            autoCapitalize="none"
             keyboardType="email-address"
           />
-          <TextInput 
-            style={styles.input}
+
+          <TextInput
             placeholder="Senha"
             value={senha}
             onChangeText={setSenha}
+            style={styles.input}
             secureTextEntry
           />
-          <TextInput 
-            style={styles.input}
+
+          <TextInput
             placeholder="Telefone"
             value={telefone}
             onChangeText={setTelefone}
+            style={styles.input}
             keyboardType="phone-pad"
           />
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={handleCadastro}>
-              <Image 
-                source={require('../../assets/buttonImg.png')} 
-                style={styles.buttonImag}
-              />
+          <TouchableOpacity style={styles.buttonContainer} onPress={handleCadastro}>
+            <Image source={require('../../assets/buttonImg.png')} style={styles.buttonImag} />
+          </TouchableOpacity>
+
+          <View style={styles.loginLinkContainer}>
+            <Text>Já tem uma conta?</Text>
+            <TouchableOpacity onPress={() => router.replace('/')}>
+              <Text style={styles.loginText}>Faça Login</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.loginLinkContainer}>
-          <Link href="/" asChild>
-            <TouchableOpacity>
-              <Text style={styles.loginText}>Já tem uma conta? Faça login</Text>
-            </TouchableOpacity>
-          </Link>
         </View>
       </View>
     </View>

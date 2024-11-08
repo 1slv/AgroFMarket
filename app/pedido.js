@@ -20,48 +20,48 @@ const PedidoScreen = () => {
   const { user } = useAuth();
 
   console.log('Usuário autenticado:', user);
+  if (user) {
+    console.log('Tipo do usuário:', user.tipo);
+    if (user.tipo === 'agricultor') {
+      console.log('Número de hortas:', user.hortas.length);
+    }
+  }
 
   const [hortas, setHortas] = useState([]);
   const [selectedHortaId, setSelectedHortaId] = useState(null);
   const [produtos, setProdutos] = useState([]);
 
   useEffect(() => {
-    console.log('Iniciando carregamento das hortas...');
-    carregarHortas();
+    const fetchHortas = async () => {
+      await carregarHortas();
+    };
+    fetchHortas();
   }, []);
 
-  const carregarHortas = () => {
+  const carregarHortas = async () => {
     try {
-      if (!user || !user.id) {
-        throw new Error('Usuário não autenticado ou ID inexistente.');
-      }
-
-      console.log('Usuário autenticado:', user);
-      const hortasDoAgricultor = database.getHortasAgricultor(user.id);
-      console.log('Hortas retornadas:', hortasDoAgricultor);
-
-      setHortas(hortasDoAgricultor);
-      console.log('Estado hortas atualizado:', hortasDoAgricultor);
-
-      if (hortasDoAgricultor.length > 0) {
-        setSelectedHortaId(hortasDoAgricultor[0].id);
-        console.log(`Horta selecionada: ${hortasDoAgricultor[0].id}`);
-        carregarProdutos(hortasDoAgricultor[0].id);
-      } else {
-        console.log('Nenhuma horta disponível.');
-      }
+      const hortasDoConsumidor = await database.getTodasHortas();
+      console.log('Hortas disponíveis:', hortasDoConsumidor);
+      setHortas(hortasDoConsumidor);
     } catch (error) {
       console.error('Erro ao carregar hortas:', error);
       Alert.alert('Erro', 'Erro ao carregar hortas');
     }
   };
 
-  const carregarProdutos = (hortaId) => {
+  const carregarProdutos = async (hortaId) => {
     try {
-      const produtosDaHorta = database.getAlimentosHorta(hortaId);
-      console.log('Produtos da horta:', produtosDaHorta);
-      setProdutos(produtosDaHorta.map((p) => ({ ...p, quantidade: 0 })));
-      console.log('Estado produtos atualizado:', produtosDaHorta.map((p) => ({ ...p, quantidade: 0 })));
+      const alimentos = await database.getAlimentosHorta(hortaId);
+      console.log(`Alimentos recebidos para horta ID ${hortaId}:`, alimentos);
+      const produtosInicializados = alimentos.map((alimento) => ({
+        id: Number(alimento.id),
+        nome: alimento.nome,
+        preco: Number(alimento.preco),
+        quantidade: 0,
+        estoque: Number(alimento.quantidade),
+      }));
+      console.log('Produtos Inicializados:', produtosInicializados);
+      setProdutos(produtosInicializados);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
       Alert.alert('Erro', 'Erro ao carregar produtos');
@@ -69,32 +69,57 @@ const PedidoScreen = () => {
   };
 
   const selecionarHorta = (hortaId) => {
-    console.log(`Selecionando horta ID: ${hortaId}`);
+    console.log(`Horta selecionada: ID ${hortaId} (tipo: ${typeof hortaId})`);
     setSelectedHortaId(hortaId);
     carregarProdutos(hortaId);
+    console.log(`Horta ID ${hortaId} selecionada.`);
   };
 
   const adicionarProduto = (id) => {
-    setProdutos(
-      produtos.map((produto) =>
-        produto.id === id
+    console.log(`adicionarProduto chamado com id: ${id} (tipo: ${typeof id})`);
+    setProdutos((prevProdutos) => {
+      const updatedProdutos = prevProdutos.map((produto) =>
+        produto.id === id && produto.quantidade < produto.estoque
           ? { ...produto, quantidade: produto.quantidade + 1 }
           : produto
-      )
-    );
-    console.log(`Produto ID ${id} incrementado.`);
+      );
+
+      const produtoSelecionado = updatedProdutos.find((produto) => produto.id === id);
+
+      if (produtoSelecionado.quantidade > produtoSelecionado.estoque) {
+        Alert.alert(
+          'Estoque',
+          `Você não pode selecionar mais de ${produtoSelecionado.estoque} unidades de ${produtoSelecionado.nome}.`
+        );
+        // Reverter a quantidade se exceder o estoque
+        return prevProdutos;
+      } else {
+        console.log(`Produto ID ${id} incrementado. Quantidade atual: ${produtoSelecionado.quantidade}`);
+      }
+
+      console.log('Estado atualizado de produtos:', updatedProdutos);
+      return updatedProdutos;
+    });
   };
 
   const removerProduto = (id) => {
-    setProdutos(
-      produtos.map((produto) =>
+    console.log(`removerProduto chamado com id: ${id} (tipo: ${typeof id})`);
+    setProdutos((prevProdutos) => {
+      const updatedProdutos = prevProdutos.map((produto) =>
         produto.id === id && produto.quantidade > 0
           ? { ...produto, quantidade: produto.quantidade - 1 }
           : produto
-      )
-    );
-    console.log(`Produto ID ${id} decrementado.`);
+      );
+      const produtoAtualizado = updatedProdutos.find((p) => p.id === id);
+      console.log(`Produto ID ${id} decrementado. Quantidade atual: ${produtoAtualizado.quantidade}`);
+      console.log('Estado atualizado de produtos:', updatedProdutos);
+      return updatedProdutos;
+    });
   };
+
+  useEffect(() => {
+    console.log('Produtos state updated:', produtos);
+  }, [produtos]);
 
   const renderHortaItem = ({ item }) => (
     <TouchableOpacity
@@ -104,7 +129,14 @@ const PedidoScreen = () => {
       ]}
       onPress={() => selecionarHorta(item.id)}
     >
-      <Text style={styles.hortaNome}>{item.nome}</Text>
+      <Text
+        style={[
+          styles.hortaNome,
+          selectedHortaId === item.id && styles.hortaNomeSelecionado,
+        ]}
+      >
+        {item.nome}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -112,43 +144,119 @@ const PedidoScreen = () => {
     <View style={styles.produtoCard}>
       <View style={styles.produtoInfo}>
         <Text style={styles.nomeProduto}>{item.nome}</Text>
-        <Text style={styles.preco}>R$ {item.preco.toFixed(2)} / unidade</Text>
+        <Text style={styles.preco}>Preço: R$ {item.preco.toFixed(2)}</Text>
+        <Text style={styles.estoque}>Estoque: {item.estoque}</Text>
       </View>
-
       <View style={styles.controleQuantidade}>
         <TouchableOpacity
-          style={styles.botaoControle}
-          onPress={() => removerProduto(item.id)}
-        >
-          <Text style={styles.botaoTexto}>-</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.quantidade}>{item.quantidade}</Text>
-
-        <TouchableOpacity
-          style={styles.botaoControle}
+          style={[
+            styles.botaoControle,
+            item.quantidade >= item.estoque && styles.botaoControleDesabilitado,
+          ]}
           onPress={() => adicionarProduto(item.id)}
+          disabled={item.quantidade >= item.estoque}
         >
           <Text style={styles.botaoTexto}>+</Text>
+        </TouchableOpacity>
+        <Text style={styles.quantidade}>{item.quantidade}</Text>
+        <TouchableOpacity
+          style={[
+            styles.botaoControle,
+            item.quantidade === 0 && styles.botaoControleDesabilitado,
+          ]}
+          onPress={() => removerProduto(item.id)}
+          disabled={item.quantidade === 0}
+        >
+          <Text style={styles.botaoTexto}>-</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  const confirmarPedido = () => {
-    const produtosSelecionados = produtos.filter(
-      (produto) => produto.quantidade > 0
-    );
-    if (produtosSelecionados.length === 0) {
+  const confirmarPedido = async () => {
+    if (resumoPedido.itens.length === 0) {
       Alert.alert('Erro', 'Você precisa selecionar pelo menos um produto.');
       return;
     }
 
-    router.push({
-      pathname: '/finalizar',
-      params: { produtos: JSON.stringify(produtosSelecionados) },
-    });
-    console.log('Pedido confirmado com produtos:', produtosSelecionados);
+    if (!selectedHortaId) {
+      Alert.alert('Erro', 'Por favor, selecione uma horta.');
+      return;
+    }
+
+    try {
+      const mensagemConfirmacao = await database.processarPedido(resumoPedido.itens);
+      Alert.alert('Sucesso', mensagemConfirmacao);
+
+      router.push({
+        pathname: '/finalizar',
+        params: {
+          produtos: JSON.stringify(resumoPedido.itens),
+          hortaId: selectedHortaId,
+          total: resumoPedido.total.toString(),
+        },
+      });
+      console.log('Pedido confirmado com produtos:', resumoPedido.itens);
+    } catch (error) {
+      console.error('Erro ao confirmar pedido:', error);
+      // Assegure-se de que 'error' seja uma string
+      const mensagemErro =
+        typeof error === 'string'
+          ? error
+          : error.message || 'Ocorreu um erro inesperado.';
+      Alert.alert('Erro', mensagemErro);
+    }
+  };
+
+  const confirmarPedidoAtualizado = async () => {
+    if (resumoPedido.itens.length === 0) {
+      Alert.alert('Erro', 'Você precisa selecionar pelo menos um produto.');
+      return;
+    }
+
+    if (!selectedHortaId) {
+      Alert.alert('Erro', 'Por favor, selecione uma horta.');
+      return;
+    }
+
+    try {
+      const mensagemConfirmacao = await database.processarPedido(resumoPedido.itens);
+      Alert.alert('Sucesso', mensagemConfirmacao);
+
+      router.push({
+        pathname: '/finalizar',
+        params: {
+          produtos: JSON.stringify(resumoPedido.itens),
+          hortaId: selectedHortaId,
+          total: resumoPedido.total.toString(),
+        },
+      });
+      console.log('Pedido confirmado com produtos:', resumoPedido.itens);
+    } catch (error) {
+      console.error('Erro ao confirmar pedido:', error);
+      // Assegure-se de que 'error' seja uma string
+      const mensagemErro =
+        typeof error === 'string'
+          ? error
+          : error.message || 'Ocorreu um erro inesperado.';
+      Alert.alert('Erro', mensagemErro);
+    }
+  };
+
+  const confirmarPedidoFinal = async () => {
+    confirmarPedido();
+  };
+
+  const resumoPedido = {
+    itens: produtos.filter((produto) => produto.quantidade > 0).map((produto) => ({
+      id: produto.id,
+      nome: produto.nome,
+      preco: produto.preco,
+      quantidadeSelecionada: produto.quantidade,
+    })),
+    total: produtos
+      .reduce((acc, produto) => acc + produto.preco * produto.quantidade, 0)
+      .toFixed(2),
   };
 
   return (
@@ -161,13 +269,10 @@ const PedidoScreen = () => {
         style={styles.picker}
         onValueChange={(itemValue) => selecionarHorta(itemValue)}
       >
-        {hortas.length > 0 ? (
-          hortas.map((horta) => (
-            <Picker.Item key={horta.id} label={horta.nome} value={horta.id} />
-          ))
-        ) : (
-          <Picker.Item label="Nenhuma horta disponível" value={null} />
-        )}
+        <Picker.Item label="Selecione uma horta" value={null} />
+        {hortas.map((horta) => (
+          <Picker.Item key={horta.id} label={horta.nome} value={horta.id} />
+        ))}
       </Picker>
 
       {/* Verificação de Hortas Existentes */}
@@ -178,22 +283,28 @@ const PedidoScreen = () => {
       )}
 
       {/* Lista de Produtos da Horta Selecionada */}
-      <FlatList
-        data={produtos}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderProduto}
-        contentContainerStyle={styles.produtoList}
-        ListEmptyComponent={
-          <Text style={styles.noProdutoText}>
-            Nenhum produto disponível nesta horta.
-          </Text>
-        }
-      />
+      {selectedHortaId && (
+        <FlatList
+          data={produtos}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderProduto}
+          contentContainerStyle={styles.produtoList}
+          ListEmptyComponent={
+            <Text style={styles.noProdutoText}>
+              Nenhum produto disponível nesta horta.
+            </Text>
+          }
+        />
+      )}
 
       {/* Botão de Confirmar Pedido */}
       <TouchableOpacity
-        style={styles.botaoConfirmar}
-        onPress={confirmarPedido}
+        style={[
+          styles.botaoConfirmar,
+          resumoPedido.itens.length === 0 && styles.botaoConfirmarDesabilitado,
+        ]}
+        onPress={confirmarPedidoFinal}
+        disabled={resumoPedido.itens.length === 0 || !selectedHortaId}
       >
         <Text style={styles.botaoConfirmarTexto}>Confirmar Pedido</Text>
       </TouchableOpacity>
@@ -211,6 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#80BD1C',
     marginBottom: 20,
+    marginTop: 40,
     textAlign: 'center',
   },
   picker: {
@@ -234,14 +346,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#80BD1C',
   },
   hortaNome: {
-    color: '#fff',
+    color: '#80BD1C',
     textAlign: 'center',
     fontSize: 16,
+  },
+  hortaNomeSelecionado: {
+    color: '#fff',
   },
   noHortaText: {
     color: '#ff0000',
     textAlign: 'center',
     marginBottom: 15,
+    fontSize: 16,
   },
   produtoList: {
     paddingBottom: 20,
@@ -254,8 +370,8 @@ const styles = StyleSheet.create({
     borderColor: '#80BD1C',
     borderRadius: 8,
     padding: 15,
-    marginBottom: 10,
     backgroundColor: '#f9f9f9',
+    marginBottom: 10,
   },
   produtoInfo: {
     flex: 1,
@@ -270,6 +386,11 @@ const styles = StyleSheet.create({
     color: '#555',
     marginTop: 5,
   },
+  estoque: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 5,
+  },
   controleQuantidade: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -278,6 +399,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#80BD1C',
     padding: 5,
     borderRadius: 5,
+  },
+  botaoControleDesabilitado: {
+    backgroundColor: '#cccccc',
   },
   botaoTexto: {
     color: '#fff',
@@ -301,6 +425,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  botaoConfirmarDesabilitado: {
+    backgroundColor: '#cccccc',
+    opacity: 0.7,
   },
   botaoConfirmarTexto: {
     color: '#fff',
